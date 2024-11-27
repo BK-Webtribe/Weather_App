@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import '../styles/app.css'
 import search_icon from '../images/search.png'
-import clear_icon from '../images/clear.png'
-import cloud_icon from '../images/cloud.png'
-import drizzle_icon from '../images/drizzle.png'
 import humidity_icon from '../images/humidity.png'
-import rain_icon from '../images/rain.png'
-import snow_icon from '../images/snow.png'
 import wind_icon from '../images/wind.png'
+import location_icon from '../images/location.png'
+import { error } from 'console'
 
 const API_KEY = '9dc0a62c1054587859fc7804f2fca695';
 
@@ -63,30 +60,72 @@ interface WeatherData {
 
 
 const Weather = () => {
-
+    const inputRef = useRef<HTMLInputElement | null> (null);
     const [weatherData, setWeatherData] = useState<WeatherData | undefined>(undefined);
 
     const search = async (city: string) => {
+
+        if (city === ""){
+            alert("Enter city Name");
+            return;
+        }
         try{
             const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${API_KEY}`;
             const response = await fetch(url);
             const data: WeatherData = await response.json();
             console.log(data);
-            setWeatherData(data)
+            setWeatherData(data);
         }catch (error) {
+            setWeatherData(undefined);
+            console.error("Error in fetching data")
+        }
+    }
 
+    const getCurrentLocationWeather = () =>{
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+               async (position) => {
+                 const { latitude, longitude } = position.coords;
+
+                 try{
+                    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`;
+                    const response = await fetch(url);
+                    const data: WeatherData = await response.json();
+                    console.log(data);
+                    setWeatherData(data);
+
+                    if (inputRef.current){
+                        inputRef.current.value = data.name;
+                    }
+                 }catch (error){
+                    console.error("Error fetching location-based weather data");
+                 }
+               },
+               (error) => {
+                alert("Geolocation error: " + error.message);
+               }
+            );
+        } else{
+            alert("Geolocation is not supported by this browser.")
         }
     }
 
     useEffect(()=>{
-        search("Bengaluru");
+        getCurrentLocationWeather();
     },[])
 
   return (
     <div className='weather'>
         <div className="search-bar">
-            <input type="text" placeholder='Search..'/>
-            <img src={search_icon} alt="" />
+            <button className='location-button' onClick={getCurrentLocationWeather} >
+                <img src={location_icon} alt=""/>
+            </button>
+            <input ref={inputRef} type="text" placeholder='Search..'/>
+            <img src={search_icon} alt="" className='search-icon' onClick={() => {
+                if (inputRef.current) {
+                search(inputRef.current.value);
+                }
+            }}/>            
         </div>
         <div className='weather-details'>
             <img src={weatherData?.weather[0]?.icon ? `http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png` : ''} alt="" className='weather-icon'/>
