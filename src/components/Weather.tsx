@@ -4,9 +4,17 @@ import search_icon from '../images/search.png'
 import humidity_icon from '../images/humidity.png'
 import wind_icon from '../images/wind.png'
 import location_icon from '../images/location.png'
-import { error } from 'console'
 
 const API_KEY = '9dc0a62c1054587859fc7804f2fca695';
+
+interface User {
+  displayName: string;
+  email: string;
+}
+interface UserData {
+  user: User; 
+  handleLogout: () => void;
+}
 
 interface WeatherData {
     coord: {
@@ -59,7 +67,7 @@ interface WeatherData {
   
 
 
-const Weather = () => {
+  const Weather: React.FC<UserData> = ({ user, handleLogout }) => {
     const inputRef = useRef<HTMLInputElement | null> (null);
     const [weatherData, setWeatherData] = useState<WeatherData | undefined>(undefined);
 
@@ -117,6 +125,7 @@ const Weather = () => {
   return (
     <div className='weather'>
         <div className="search-bar">
+          <h1>Welcome, {user.displayName}</h1>
             <button className='location-button' onClick={getCurrentLocationWeather} >
                 <img src={location_icon} alt=""/>
             </button>
@@ -149,6 +158,16 @@ const Weather = () => {
                 </div>
             </div>
         </div>
+        <div className="hourly-forecast">
+          <h2>Hourly Forecast</h2>
+          <hr />
+          <div className="hour-card">
+            <p className="time">10:00</p>
+            <img src="{weatherData?.weather[0]?.icon ? `http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png` : ''}" alt="" />
+            <p className="temp">10°C</p>
+          </div>
+        </div>
+        <button onClick={handleLogout}>Logout</button>
     </div>
   )
 }

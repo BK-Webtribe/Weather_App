@@ -1,13 +1,25 @@
 import React from 'react';
-import GoogleAuth from './components/loginPage';
-import Weather from './components/Weather'
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import GoogleAuth from './components/loginPage'; // Adjust the path if needed
+import HomePage from './components/homepage'; // Match the file name exactly
 
 function App() {
-  return(
-  // <GoogleAuth/>
-  <div className='app'>
-    <Weather/>
-  </div>
+  const handleLogout = async () => {
+    console.log('User logged out');
+  };
+
+  return (
+    <div>
+      <BrowserRouter>
+        <Routes>
+          <Route index element={<GoogleAuth />} />
+          <Route
+            path="/homepage"
+            element={<HomePage user={undefined} handleLogout={handleLogout} />}
+          />
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
 }
 
