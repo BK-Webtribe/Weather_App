@@ -74,12 +74,13 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchCity: string) => {
     if (searchCity.trim() === "") return;
     try {
       const currentSearchResults = await fetchWeatherData(searchCity);
       setWeatherData(currentSearchResults);
       setSearchCity("");
+      setCitySuggestions([]);
       console.log(currentSearchResults);
     } catch (error) {
       console.error("Error fetching weather data:", error);
@@ -254,35 +255,54 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
     }
   };
 
-  const fetchCitySuggestions = async (query: string) => {
-    if (!query.trim()) {
+  const fetchCitySuggestions = async (input: string) => {
+    if (!input.trim()) {
       setCitySuggestions([]);
       return;
     }
-
+  
     try {
-      const url = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${API_KEY}`;
+      const url = `https://api.openweathermap.org/geo/1.0/direct?q=${input}&limit=5&appid=${API_KEY}`;
       const response = await axios.get(url);
-      const suggestions = response.data.map((city: any) =>
-        `${city.name}, ${city.country}`
-      );
+      const suggestions = response.data.map((city: any) => {
+        if (city.name && city.country) {
+          return `${city.name}, ${city.country}`;
+        }
+        return null; // Exclude invalid results
+      }).filter(Boolean);
+  
       setCitySuggestions(suggestions);
-      setShowSuggestions(true);
+      setShowSuggestions(suggestions.length > 0);
     } catch (error) {
       console.error("Error fetching city suggestions:", error);
+      setCitySuggestions([]);
     }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setSearchCity(suggestion);
+    const formattedCity = suggestion.split(",")[0].trim();
+    setSearchCity("");
     setShowSuggestions(false);
-    handleSearch();
+    handleSearch(formattedCity);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const value = e.target.value.trim();
     setSearchCity(value);
-    fetchCitySuggestions(value);
+  
+    if (value) {
+      fetchCitySuggestions(value);
+    } else {
+      setCitySuggestions([]);
+      setShowSuggestions(false); // Ensure dropdown is hidden for empty input
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchCity.trim()) {
+      handleSearch(searchCity.trim()); // Ensure no extra spaces are passed
+      setShowSuggestions(false); // Close suggestions on search
+    }
   };
 
   React.useEffect(() => {
@@ -346,32 +366,30 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
       </header>
       <section className='main-content'>
         <div className="search-section">
-          <div className="search-box">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search location..."
-              value={searchCity}
-              onChange={handleInputChange}
-              onFocus={() => setShowSuggestions(true)} 
-            />
-            <button type="button" onClick={handleSearch}>
-              <IoSearch />
-            </button>
-            {showSuggestions && citySuggestions.length > 0 && (
-              <div className="dropdown-suggestions">
-                {citySuggestions.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    className="dropdown-item"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="search-box">
+                    <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Search location..."
+                        value={searchCity}
+                        onChange={handleInputChange}
+                        onFocus={() => setShowSuggestions(true)} 
+                        onKeyDown={handleKeyDown} // Handle Enter key press
+                    />
+                    {showSuggestions && citySuggestions.length > 0 && (
+                        <div className="dropdown-suggestions">
+                            {citySuggestions.map((suggestion, index) => (
+                                <div
+                                    key={index}
+                                    className="dropdown-item"
+                                    onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                    {suggestion}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
           <button className="current-location" onClick={handleCurrentLocationClick}>
             <BiTargetLock />
             <span>My Location</span>
