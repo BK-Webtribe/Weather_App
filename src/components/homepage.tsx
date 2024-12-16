@@ -43,7 +43,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const currentWeather = await fetchWeatherfuction(latitude, longitude);
+          const currentWeather = await fetchWeatherFunction(latitude, longitude);
           setWeatherData(currentWeather);
           setIsLoading(true);
         } catch (error) {
@@ -56,7 +56,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
     );
   };
 
-  const fetchWeatherfuction = async (lat: number, lon: number) => {
+  const fetchWeatherFunction = async (lat: number, lon: number) => {
     const url = `${API_URL}forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`; // Corrected `&units=metric`
     const response = await axios.get(url);
     return response.data;
@@ -75,15 +75,28 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
   };
 
   const handleSearch = async (searchCity: string) => {
-    if (searchCity.trim() === "") return;
     try {
-      const currentSearchResults = await fetchWeatherData(searchCity);
-      setWeatherData(currentSearchResults);
-      setSearchCity("");
-      setCitySuggestions([]);
-      console.log(currentSearchResults);
+      const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${searchCity}&limit=5&appid=${API_KEY}`;
+      const geocodeResponse = await axios.get(geocodeUrl);
+  
+      if (geocodeResponse.data.length === 0) {
+        console.error("No results found for the given city.");
+        return;
+      }
+  
+      // Filter results to prioritize cities over POIs
+      const cityResults = geocodeResponse.data.filter((location: any) => location.local_names || location.state);
+  
+      if (cityResults.length > 0) {
+        const { name, state, country, lat, lon } = cityResults[0];
+        console.log(`Matched City: ${name}, ${state || ""}, ${country}`);
+        const weatherData = await fetchWeatherFunction(lat, lon);
+        setWeatherData(weatherData);
+      } else {
+        console.error("No valid city found. Results may be POIs.");
+      }
     } catch (error) {
-      console.error("Error fetching weather data:", error);
+      console.error("Error during geocoding:", error);
     }
   };
 
@@ -310,7 +323,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, handleLogout }) => {
       try {
         navigator.geolocation.getCurrentPosition(async (position) => {
           const { latitude, longitude } = position.coords;
-          const currentWeather = await fetchWeatherfuction(latitude, longitude);
+          const currentWeather = await fetchWeatherFunction(latitude, longitude);
           setWeatherData(currentWeather);
           console.log("Fetched current weather:", currentWeather);
         });
